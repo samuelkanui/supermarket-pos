@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Actions\Teams\CreateTeam;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -29,16 +30,29 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
+            'shop_name' => ['required', 'string', 'max:255'],
+            'subdomain' => ['required', 'string', 'alpha_dash', 'max:50', 'unique:tenants,subdomain'],
         ])->validate();
 
         return DB::transaction(function () use ($input) {
+            $tenant = Tenant::create([
+                'name' => $input['shop_name'],
+                'subdomain' => strtolower($input['subdomain']),
+                'status' => 'trial',
+                'trial_ends_at' => now()->addDays(14),
+            ]);
+
+            // Bind the active tenant into the container so subsequent creations inherit tenant_id
+            app()->instance('tenant', $tenant);
+
             $user = User::create([
+                'tenant_id' => $tenant->id,
                 'name' => $input['name'],
                 'email' => $input['email'],
                 'password' => $input['password'],
             ]);
 
-            $this->createTeam->handle($user, $user->name."'s Team", isPersonal: true);
+            $this->createTeam->handle($user, 'Main Branch', isPersonal: true);
 
             return $user;
         });
