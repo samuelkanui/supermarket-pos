@@ -21,7 +21,9 @@ Route::prefix('{current_team}')
         Route::resource('categories', \App\Http\Controllers\Inventory\CategoryController::class);
         Route::resource('suppliers', \App\Http\Controllers\Inventory\SupplierController::class);
 
-        // Stock counts and adjustments
+        // POS checkout and sale routes
+        Route::get('pos/checkout', \App\Http\Controllers\Pos\CheckoutController::class.'@index')->name('pos.checkout');
+        Route::post('pos/sale', \App\Http\Controllers\Pos\SaleController::class.'@store')->name('pos.sale.store');
         Route::get('stocks', [\App\Http\Controllers\Inventory\StockController::class, 'index'])->name('stocks.index');
         Route::post('stocks/adjust', [\App\Http\Controllers\Inventory\StockController::class, 'adjust'])->name('stocks.adjust');
     });
