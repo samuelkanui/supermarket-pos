@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
+import { Plus, Pencil, Trash2 } from 'lucide-vue-next';
 import { Dialog, DialogTrigger, DialogContent, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,10 +19,31 @@ type Props = {
 defineProps<Props>();
 
 const open = ref(false);
+const editOpen = ref(false);
+const deleteOpen = ref(false);
 const formKey = ref(0);
+const editFormKey = ref(0);
+const deleteFormKey = ref(0);
+const selectedProduct = ref(null);
 function handleOpenChange(value: boolean) {
   open.value = value;
   if (!value) formKey.value++;
+}
+function handleEditOpenChange(value: boolean) {
+  editOpen.value = value;
+  if (!value) editFormKey.value++;
+}
+function handleDeleteOpenChange(value: boolean) {
+  deleteOpen.value = value;
+  if (!value) deleteFormKey.value++;
+}
+function startEdit(product) {
+  selectedProduct.value = product;
+  editOpen.value = true;
+}
+function startDelete(product) {
+  selectedProduct.value = product;
+  deleteOpen.value = true;
 }
 </script>
 
@@ -85,6 +107,54 @@ function handleOpenChange(value: boolean) {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <!-- Edit Product Dialog -->
+      <Dialog :open="editOpen" @update:open="handleEditOpenChange">
+        <DialogContent>
+          <Form :key="editFormKey" v-bind="store.form(selectedProduct?.id)" class="space-y-4" v-slot="{ errors, processing }" @success="editOpen = false">
+            <DialogHeader>
+              <DialogTitle>Edit Product</DialogTitle>
+              <DialogDescription>Update product details.</DialogDescription>
+            </DialogHeader>
+            <div class="grid gap-2">
+              <Label for="edit-name">Name</Label>
+              <Input id="edit-name" name="name" :value="selectedProduct?.name" required />
+              <InputError :message="errors.name" />
+            </div>
+            <div class="grid gap-2">
+              <Label for="edit-sku">SKU</Label>
+              <Input id="edit-sku" name="sku" :value="selectedProduct?.sku" />
+            </div>
+            <div class="grid gap-2">
+              <Label for="edit-price">Price</Label>
+              <Input id="edit-price" name="price" type="number" step="0.01" :value="selectedProduct?.price" />
+            </div>
+            <DialogFooter class="gap-2">
+              <DialogClose as-child>
+                <Button variant="secondary">Cancel</Button>
+              </DialogClose>
+              <Button type="submit" :disabled="processing">Update</Button>
+            </DialogFooter>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <!-- Delete Product Confirmation -->
+      <Dialog :open="deleteOpen" @update:open="handleDeleteOpenChange">
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Product</DialogTitle>
+            <DialogDescription>Are you sure you want to delete "{{ selectedProduct?.name }}"?</DialogDescription>
+          </DialogHeader>
+          <DialogFooter class="gap-2">
+            <DialogClose as-child>
+              <Button variant="secondary">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" @click="/* call delete API */">Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </CardHeader>
 
     <CardContent>
@@ -105,8 +175,8 @@ function handleOpenChange(value: boolean) {
             <TableCell>{{ product.price?.toFixed(2) ?? '-' }}</TableCell>
             <TableCell>{{ product.category?.name ?? '-' }}</TableCell>
             <TableCell class="flex justify-center gap-2">
-              <Button variant="ghost" size="sm" data-test="edit-product" @click="/* edit modal */"><Pencil class="h-4 w-4" /></Button>
-              <Button variant="ghost" size="sm" data-test="delete-product" @click="/* delete */"><Trash2 class="h-4 w-4 text-red-500" /></Button>
+              <Button variant="ghost" size="sm" data-test="edit-product" @click="startEdit(product)"><Pencil class="h-4 w-4" /></Button>
+                <Button variant="ghost" size="sm" data-test="delete-product" @click="startDelete(product)"><Trash2 class="h-4 w-4 text-red-500" /></Button>
             </TableCell>
           </TableRow>
           <TableRow v-if="products.length === 0">

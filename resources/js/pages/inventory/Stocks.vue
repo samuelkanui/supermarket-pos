@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
+import { Plus, Pencil, Trash2 } from 'lucide-vue-next';
 import { Dialog, DialogTrigger, DialogContent, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { store } from '@/routes/stocks';
@@ -18,9 +20,33 @@ defineProps<Props>();
 
 const open = ref(false);
 const formKey = ref(0);
+const editOpen = ref(false);
+const deleteOpen = ref(false);
+const editFormKey = ref(0);
+const deleteFormKey = ref(0);
+const selectedStock = ref(null);
 function handleOpenChange(value: boolean) {
   open.value = value;
   if (!value) formKey.value++;
+function handleOpenChange(value: boolean) {
+  open.value = value;
+  if (!value) formKey.value++;
+}
+function handleEditOpenChange(value) {
+  editOpen.value = value;
+  if (!value) editFormKey.value++;
+}
+function handleDeleteOpenChange(value) {
+  deleteOpen.value = value;
+  if (!value) deleteFormKey.value++;
+}
+function startEdit(stock) {
+  selectedStock.value = stock;
+  editOpen.value = true;
+}
+function startDelete(stock) {
+  selectedStock.value = stock;
+  deleteOpen.value = true;
 }
 </script>
 
@@ -78,6 +104,44 @@ function handleOpenChange(value: boolean) {
           </Form>
         </DialogContent>
       </Dialog>
+<!-- Edit Stock Dialog -->
+<Dialog :open="editOpen" @update:open="handleEditOpenChange">
+  <DialogContent>
+    <Form :key="editFormKey" v-bind="store.form(selectedStock?.id)" class="space-y-4" v-slot="{ errors, processing }" @success="editOpen = false">
+      <DialogHeader>
+        <DialogTitle>Edit Stock</DialogTitle>
+        <DialogDescription>Adjust quantity for the selected stock.</DialogDescription>
+      </DialogHeader>
+      <div class="grid gap-2">
+        <Label for="edit-quantity">Quantity</Label>
+        <Input id="edit-quantity" name="quantity" type="number" :value="selectedStock?.quantity" required />
+        <InputError :message="errors.quantity" />
+      </div>
+      <DialogFooter class="gap-2">
+        <DialogClose as-child>
+          <Button variant="secondary">Cancel</Button>
+        </DialogClose>
+        <Button type="submit" :disabled="processing">Update</Button>
+      </DialogFooter>
+    </Form>
+  </DialogContent>
+</Dialog>
+
+<!-- Delete Stock Confirmation -->
+<Dialog :open="deleteOpen" @update:open="handleDeleteOpenChange">
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Delete Stock</DialogTitle>
+      <DialogDescription>Are you sure you want to delete stock for "{{ selectedStock?.product?.name }}" at "{{ selectedStock?.branch?.name }}"?</DialogDescription>
+    </DialogHeader>
+    <DialogFooter class="gap-2">
+      <DialogClose as-child>
+        <Button variant="secondary">Cancel</Button>
+      </DialogClose>
+      <Button variant="destructive" @click="/* call delete API */">Delete</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
     </CardHeader>
 
     <CardContent>
@@ -96,8 +160,8 @@ function handleOpenChange(value: boolean) {
             <TableCell>{{ stock.product?.name ?? '-' }}</TableCell>
             <TableCell>{{ stock.quantity }}</TableCell>
             <TableCell class="flex justify-center gap-2">
-              <Button variant="ghost" size="sm" data-test="edit-stock" @click="/* edit */"><Pencil class="h-4 w-4" /></Button>
-              <Button variant="ghost" size="sm" data-test="delete-stock" @click="/* delete */"><Trash2 class="h-4 w-4 text-red-500" /></Button>
+              <Button variant="ghost" size="sm" data-test="edit-stock" @click="startEdit(stock)"><Pencil class="h-4 w-4" /></Button>
+              <Button variant="ghost" size="sm" data-test="delete-stock" @click="startDelete(stock)"><Trash2 class="h-4 w-4 text-red-500" /></Button>
             </TableCell>
           </TableRow>
           <TableRow v-if="stocks.length === 0">
